@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>실시간 온라인 빙고 게임</title>
+    <title>분수 학습 앱</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap"
       rel="stylesheet"
@@ -13,1783 +14,808 @@
       body {
         font-family: "Noto Sans KR", sans-serif;
       }
-      /* Custom modal for alerts */
-      .modal-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
+      .mission-card {
+        background-color: #f0f9ff;
+        border-left: 5px solid #0ea5e9;
       }
-      .modal-content {
-        background-color: white;
-        padding: 2rem;
-        border-radius: 0.75rem;
-        text-align: center;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
-          0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        max-width: 90%;
-        width: 400px;
+      .result-card.success {
+        background-color: #f0fdf4;
+        border-color: #22c55e;
+        color: #166534;
       }
-      .modal-content p {
-        margin-bottom: 1.5rem;
-        font-size: 1.125rem;
+      canvas {
+        cursor: crosshair;
+        touch-action: none;
+        display: block;
       }
-      .modal-content button {
-        background-color: #f59e0b; /* amber-500 */
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.5rem;
-        border: none;
-        cursor: pointer;
-        font-weight: bold;
+      #summary-screen {
+        background-color: #f8fafc; /* slate-50 */
       }
-      .modal-content button:hover {
-        background-color: #d97706; /* amber-600 */
+      .difficulty-btn {
+        transition: all 0.2s ease-in-out;
       }
-      .bingo-cell {
-        aspect-ratio: 1 / 1;
-        padding: 4px;
-        font-size: 0.8rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        word-break: break-word; /* 긴 단어 줄바꿈 */
-        white-space: normal; /* 자동 줄바꿈 허용 */
-        position: relative;
-      }
-      .bingo-cell.marked {
-        background-color: #f59e0b; /* amber-500 */
-        color: white;
-      }
-      .bingo-cell.marked::after {
-        content: "✔";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 2rem;
-        color: rgba(255, 255, 255, 0.7);
-        z-index: 1;
-      }
-      .bingo-input-div {
-        width: 100%;
-        height: 100%;
-        border: none;
-        background-color: transparent;
-        font-size: inherit;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-      }
-      .bingo-input-div:focus {
-        outline: none;
-        background-color: #fef3c7; /* amber-100 */
-      }
-      .turn-highlight {
-        box-shadow: 0 0 15px 5px #34d399; /* emerald-400 */
-      }
-      .host-clickable {
-        cursor: pointer;
-      }
-      .host-clickable:hover {
-        background-color: #d1fae5; /* emerald-100 */
-      }
-      .bingo-grid-container {
-        position: relative;
-      }
-      .bingo-line-svg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 2;
-      }
-      .bingo-line {
-        stroke: #dc2626; /* red-600 */
-        stroke-width: 5;
-        stroke-linecap: round;
+      .difficulty-btn:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+          0 4px 6px -4px rgb(0 0 0 / 0.1);
       }
     </style>
   </head>
-  <body class="bg-gray-100 text-gray-800">
-    <div id="app-container" class="max-w-7xl mx-auto p-4">
-      <!-- 초기 화면: 방 만들기 / 참여하기 -->
-      <div
-        id="home-screen"
-        class="text-center max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg"
-      >
-        <h1 class="text-4xl font-bold mb-2 text-amber-500">
-          실시간 빙고 게임!
-        </h1>
-        <p class="text-gray-600 mb-8">친구들과 함께 즐거운 빙고 한 판!</p>
+  <body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-8">
+      <header class="text-center mb-6 hidden">
+        <h1 class="text-3xl font-bold text-slate-800">도형 나누기 챌린지</h1>
+        <p class="text-slate-500 mt-2">
+          도형을 똑같이 나누어 분수의 개념을 배워보아요!
+        </p>
+      </header>
 
-        <div class="space-y-4">
+      <!-- Difficulty Selection Screen (Initially Visible) -->
+      <div id="difficulty-screen">
+        <h2 class="text-2xl font-bold text-center text-slate-800 mb-8">
+          난이도를 선택하세요
+        </h2>
+        <div class="flex flex-col sm:flex-row gap-6 justify-center">
           <button
-            id="show-create-room-btn"
-            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300"
+            id="easy-mode-btn"
+            class="difficulty-btn w-full sm:w-48 bg-sky-500 hover:bg-sky-600 text-white font-bold py-4 px-6 rounded-xl text-lg"
           >
-            방 만들기
+            쉬운 버전<br />
+            <span class="font-normal text-sm">(가이드라인 표시)</span>
           </button>
           <button
-            id="show-join-room-btn"
-            class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300"
+            id="hard-mode-btn"
+            class="difficulty-btn w-full sm:w-48 bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-6 rounded-xl text-lg"
           >
-            참여하기
+            어려운 버전<br />
+            <span class="font-normal text-sm">(가이드라인 없음)</span>
           </button>
-        </div>
-
-        <div id="create-room-form" class="hidden mt-8 text-left space-y-4">
-          <h2 class="text-2xl font-semibold text-center">새로운 방 만들기</h2>
-          <div>
-            <label for="topic" class="block text-sm font-medium text-gray-700"
-              >빙고 주제</label
-            >
-            <input
-              type="text"
-              id="topic"
-              placeholder="예: 음식, 동물, 영화 제목"
-              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-            />
-          </div>
-          <div>
-            <label for="size" class="block text-sm font-medium text-gray-700"
-              >빙고 크기</label
-            >
-            <select
-              id="size"
-              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-            >
-              <option value="3">3x3</option>
-              <option value="4">4x4</option>
-              <option value="5" selected>5x5</option>
-            </select>
-          </div>
-          <div>
-            <label
-              for="win-condition"
-              class="block text-sm font-medium text-gray-700"
-              >우승 조건 (빙고 개수)</label
-            >
-            <input
-              type="number"
-              id="win-condition"
-              value="1"
-              min="1"
-              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-            />
-          </div>
-          <div>
-            <label
-              for="end-condition"
-              class="block text-sm font-medium text-gray-700"
-              >게임 종료 인원</label
-            >
-            <input
-              type="number"
-              id="end-condition"
-              value="1"
-              min="1"
-              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-            />
-          </div>
-
-          <div class="mt-4 pt-4 border-t">
-            <label class="flex items-center">
-              <input
-                type="checkbox"
-                id="enable-random-fill"
-                class="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-              />
-              <span class="ml-2 text-sm font-medium text-gray-700"
-                >게스트 '랜덤 채우기' 기능 사용</span
-              >
-            </label>
-          </div>
-          <div id="random-words-container" class="hidden">
-            <label
-              for="random-words-list"
-              class="block text-sm font-medium text-gray-700"
-              >랜덤 단어 목록</label
-            >
-            <textarea
-              id="random-words-list"
-              rows="4"
-              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500"
-              placeholder="단어 목록을 쉼표(,) 또는 줄바꿈으로 구분하여 입력하세요."
-            ></textarea>
-          </div>
-
-          <button
-            id="create-room-btn"
-            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
-          >
-            생성하기
-          </button>
-        </div>
-
-        <div id="join-room-form" class="hidden mt-8 text-left space-y-4">
-          <h2 class="text-2xl font-semibold text-center">방 참여하기</h2>
-          <div>
-            <label
-              for="room-code-input"
-              class="block text-sm font-medium text-gray-700"
-              >방 코드</label
-            >
-            <input
-              type="text"
-              id="room-code-input"
-              placeholder="공유받은 코드를 입력하세요"
-              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <div>
-            <label
-              for="nickname-input"
-              class="block text-sm font-medium text-gray-700"
-              >닉네임</label
-            >
-            <input
-              type="text"
-              id="nickname-input"
-              placeholder="사용할 닉네임을 입력하세요"
-              class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-            />
-          </div>
-          <button
-            id="join-room-btn"
-            class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
-          >
-            입장하기
-          </button>
-        </div>
-        <p id="home-error" class="text-red-500 mt-4"></p>
-      </div>
-
-      <!-- 게임 대기 화면 -->
-      <div id="waiting-room-screen" class="hidden">
-        <div class="bg-white p-6 rounded-xl shadow-lg mb-4">
-          <h2 class="text-2xl font-bold">대기 중...</h2>
-          <p class="text-gray-600">
-            주제:
-            <span id="wait-topic" class="font-semibold text-amber-600"></span>
-          </p>
-          <div class="mt-4">
-            <p class="text-gray-600">친구들에게 방 코드를 공유해주세요!</p>
-            <div
-              class="flex items-center justify-center mt-2 bg-gray-100 p-3 rounded-lg"
-            >
-              <span
-                id="room-code-display"
-                class="text-3xl font-mono tracking-widest text-emerald-600"
-              ></span>
-              <button
-                id="copy-code-btn"
-                class="ml-4 bg-gray-200 hover:bg-gray-300 p-2 rounded-md"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid md:grid-cols-3 gap-4">
-          <!-- 참가자 목록 (호스트/게스트 공통) -->
-          <div class="md:col-span-1 bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-xl font-semibold mb-4">
-              참가자 목록 (<span id="player-count"></span>명)
-            </h3>
-            <ul id="player-list" class="space-y-2"></ul>
-          </div>
-
-          <!-- 내 빙고판 (게스트) / 전체 빙고판 미리보기 (호스트) -->
-          <div
-            id="my-bingo-panel"
-            class="md:col-span-2 bg-white p-6 rounded-xl shadow-lg"
-          >
-            <!-- 게스트 빙고판 입력 -->
-            <div id="guest-bingo-setup">
-              <h3 class="text-xl font-semibold mb-4">내 빙고판 채우기</h3>
-              <div id="my-bingo-grid-container" class="mb-4"></div>
-              <div class="flex space-x-2">
-                <button
-                  id="random-fill-btn"
-                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition"
-                >
-                  랜덤 채우기
-                </button>
-                <button
-                  id="submit-board-btn"
-                  class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg transition"
-                >
-                  제출하기
-                </button>
-              </div>
-              <p id="guest-wait-message" class="mt-4 text-center text-gray-500">
-                빙고판을 채우고 제출해주세요. 호스트가 게임을 시작할 때까지
-                기다려주세요.
-              </p>
-            </div>
-            <!-- 호스트 전체 빙고판 미리보기 -->
-            <div id="host-bingo-preview" class="hidden">
-              <h3 class="text-xl font-semibold mb-4">전체 빙고판 미리보기</h3>
-              <div
-                id="all-bingo-boards-preview"
-                class="grid grid-cols-2 lg:grid-cols-3 gap-4"
-              ></div>
-              <button
-                id="start-game-btn"
-                class="mt-6 w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                게임 시작
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
-      <!-- 게임 진행 화면 -->
-      <div id="game-screen" class="hidden">
+      <!-- Game Screen (Initially Hidden) -->
+      <main id="game-screen" class="hidden">
+        <!-- Mission Display -->
+        <div id="mission-card" class="mission-card p-4 rounded-lg mb-6">
+          <h2 id="mission-text" class="text-lg font-semibold text-sky-800">
+            미션: 잠시만 기다려주세요...
+          </h2>
+        </div>
+
+        <!-- Canvas for drawing -->
         <div
-          class="flex justify-between items-center bg-white p-4 rounded-xl shadow-lg mb-4"
+          id="canvas-container"
+          class="w-full max-w-lg mx-auto bg-white rounded-lg border-2 border-slate-200 overflow-hidden"
         >
-          <div>
-            <h2 class="text-2xl font-bold">빙고 게임 진행 중!</h2>
-            <p class="text-gray-600">
-              주제:
-              <span id="game-topic" class="font-semibold text-amber-600"></span>
-            </p>
-          </div>
-          <div id="turn-info" class="text-right">
-            <p class="text-lg">
-              현재 차례:
-              <span
-                id="current-turn-player"
-                class="font-bold text-emerald-600"
-              ></span>
-            </p>
-          </div>
+          <canvas id="drawing-canvas"></canvas>
         </div>
 
-        <div class="grid lg:grid-cols-4 gap-6">
-          <!-- 내 빙고판 (게스트) / 전체 빙고판 (호스트) -->
-          <div id="game-main-panel" class="lg:col-span-3">
-            <div id="guest-game-view" class="bg-white p-6 rounded-xl shadow-lg">
-              <h3 class="text-xl font-semibold mb-4">
-                내 빙고판 (<span id="my-nickname-display"></span>)
-              </h3>
-              <div id="game-my-bingo-grid" class="mb-4"></div>
-              <div id="my-turn-actions" class="hidden text-center">
-                <p class="font-semibold text-lg text-emerald-600 mb-2">
-                  당신 차례입니다! 발표할 단어를 선택하세요.
-                </p>
-              </div>
-            </div>
-            <div id="host-game-view" class="hidden">
-              <h3
-                class="text-xl font-semibold mb-4 p-4 bg-white rounded-xl shadow-lg"
-              >
-                전체 참가자 빙고판
-              </h3>
-              <div
-                id="host-all-boards-view"
-                class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-4"
-              ></div>
-            </div>
-          </div>
+        <!-- Control Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+          <button
+            id="clear-button"
+            class="w-full sm:w-auto bg-slate-500 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105"
+          >
+            다시 그리기
+          </button>
+          <button
+            id="next-button"
+            class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 hidden"
+          >
+            다음 문제
+          </button>
+        </div>
 
-          <!-- 게임 정보 및 컨트롤 -->
-          <div class="lg:col-span-1 space-y-6">
-            <!-- 참가자 현황 -->
-            <div class="bg-white p-6 rounded-xl shadow-lg">
-              <h3 class="text-xl font-semibold mb-4">참가자 현황</h3>
-              <ul id="game-player-list" class="space-y-3"></ul>
-            </div>
-            <!-- 발표된 단어 -->
-            <div class="bg-white p-6 rounded-xl shadow-lg">
-              <h3 class="text-xl font-semibold mb-4">발표된 단어</h3>
-              <div
-                id="called-words-list"
-                class="h-40 overflow-y-auto bg-gray-50 p-3 rounded-md space-y-1"
-              ></div>
-            </div>
-            <!-- 호스트 컨트롤 패널 -->
-            <div
-              id="host-controls"
-              class="hidden bg-white p-6 rounded-xl shadow-lg"
-            >
-              <h3 class="text-xl font-semibold mb-4">호스트 컨트롤</h3>
-              <div id="word-requests-list" class="space-y-2 mb-4">
-                <p class="text-gray-500">아직 단어 인정 요청이 없습니다.</p>
-              </div>
-              <button
-                id="skip-turn-btn"
-                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg mb-2"
-              >
-                턴 넘기기
-              </button>
-              <button
-                id="manual-end-game-btn"
-                class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg"
-              >
-                게임 강제 종료
-              </button>
-            </div>
+        <!-- Result Display -->
+        <div class="mt-6 text-center h-16 flex items-center justify-center">
+          <p id="accuracy-text" class="text-xl font-bold text-slate-700">
+            정확도: 0%
+          </p>
+          <div
+            id="result-card"
+            class="result-card p-4 rounded-lg border-l-4 hidden w-full"
+          >
+            <p id="result-text" class="text-lg font-bold"></p>
           </div>
         </div>
-      </div>
+      </main>
 
-      <!-- 게임 결과 화면 -->
-      <div
-        id="result-screen"
-        class="hidden text-center max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg"
-      >
-        <h1 class="text-4xl font-bold mb-4 text-amber-500">게임 종료!</h1>
-        <h2 class="text-2xl font-semibold mb-6">최종 순위</h2>
-        <div id="final-rankings" class="space-y-3 mb-8"></div>
-
-        <h2 class="text-2xl font-semibold mb-4">인기 단어 Top 5</h2>
-        <div id="top-words" class="space-y-2 text-lg"></div>
-
-        <button
-          id="back-to-home-btn"
-          class="mt-8 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg text-lg transition duration-300"
+      <!-- Summary Screen (Initially Hidden) -->
+      <div id="summary-screen" class="hidden p-6 rounded-lg">
+        <h2 class="text-2xl font-bold text-center text-slate-800 mb-4">
+          🎉 챌린지 완료! 🎉
+        </h2>
+        <div
+          id="final-accuracy"
+          class="text-xl font-semibold text-center text-sky-700 mb-6 bg-sky-100 p-3 rounded-lg"
+        ></div>
+        <div
+          id="results-grid"
+          class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6"
         >
-          처음으로 돌아가기
-        </button>
+          <!-- Result images will be appended here -->
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            id="download-button"
+            class="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105"
+          >
+            결과 저장하기
+          </button>
+          <button
+            id="restart-button"
+            class="w-full sm:w-auto bg-slate-500 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105"
+          >
+            처음으로
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-      // Firebase SDK를 불러옵니다.
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-      import {
-        getAuth,
-        signInAnonymously,
-        onAuthStateChanged,
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-      import {
-        getFirestore,
-        doc,
-        getDoc,
-        setDoc,
-        updateDoc,
-        onSnapshot,
-        collection,
-        query,
-        where,
-        getDocs,
-        writeBatch,
-        deleteDoc,
-      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+      // DOM Elements
+      const header = document.querySelector("header");
+      const difficultyScreen = document.getElementById("difficulty-screen");
+      const easyModeBtn = document.getElementById("easy-mode-btn");
+      const hardModeBtn = document.getElementById("hard-mode-btn");
+      const gameScreen = document.getElementById("game-screen");
+      const summaryScreen = document.getElementById("summary-screen");
+      const canvas = document.getElementById("drawing-canvas");
+      const ctx = canvas.getContext("2d");
+      const missionText = document.getElementById("mission-text");
+      const clearButton = document.getElementById("clear-button");
+      const nextButton = document.getElementById("next-button");
+      const accuracyText = document.getElementById("accuracy-text");
+      const resultCard = document.getElementById("result-card");
+      const resultText = document.getElementById("result-text");
+      const finalAccuracy = document.getElementById("final-accuracy");
+      const resultsGrid = document.getElementById("results-grid");
+      const downloadButton = document.getElementById("download-button");
+      const restartButton = document.getElementById("restart-button");
 
-      // --- 전역 변수 및 상태 관리 ---
-      const firebaseConfig = {
-        apiKey: "AIzaSyCJJ5u8sBeqTPjvVfnSulRRmRXKaE091us",
-        authDomain: "bingo-98fd5.firebaseapp.com",
-        projectId: "bingo-98fd5",
-        storageBucket: "bingo-98fd5.appspot.com",
-        messagingSenderId: "790406549720",
-        appId: "1:790406549720:web:7d67328446c693415847ad",
-        measurementId: "G-L3DDKT71T3",
-      };
-      const appId =
-        typeof __app_id !== "undefined" ? __app_id : "default-bingo-app";
+      // Game State
+      let difficulty = "hard"; // 'easy' or 'hard'
+      let currentStage = 0;
+      let userLines = [];
+      let isDrawing = false;
+      let isComplete = false;
+      let currentLine = {};
+      let center;
+      let missions;
+      let stageResults = [];
 
-      let app, auth, db;
-      let userId, userNickname;
-      let currentGameId = null;
-      let currentRoomCode = null;
-      let isHost = false;
-      let unsubscribeGame = null; // onSnapshot 리스너 해제를 위한 변수
+      function resizeCanvas() {
+        const container = document.getElementById("canvas-container");
+        const size = container.clientWidth;
+        canvas.width = size;
+        canvas.height = size;
+        center = { x: canvas.width / 2, y: canvas.height / 2 };
+        setupMission();
+      }
 
-      // --- UI 요소 ---
-      const screens = {
-        home: document.getElementById("home-screen"),
-        waiting: document.getElementById("waiting-room-screen"),
-        game: document.getElementById("game-screen"),
-        result: document.getElementById("result-screen"),
-      };
+      function defineMissions() {
+        missions = [
+          {
+            shape: "rectangle",
+            slices: 2,
+            text: "직사각형을 똑같이 둘로 나누어 보세요.",
+          },
+          {
+            shape: "circle",
+            slices: 4,
+            text: "원을 똑같이 넷으로 나누어 보세요.",
+          },
+          {
+            shape: "triangle",
+            slices: 3,
+            text: "삼각형을 똑같이 셋으로 나누어 보세요.",
+          },
+          {
+            shape: "rectangle",
+            slices: 3,
+            text: "직사각형을 똑같이 셋으로 나누어 보세요.",
+          },
+          {
+            shape: "circle",
+            slices: 6,
+            text: "원을 똑같이 여섯으로 나누어 보세요.",
+          },
+          {
+            shape: "pentagon",
+            slices: 5,
+            text: "오각형을 똑같이 다섯으로 나누어 보세요.",
+          },
+        ];
+      }
 
-      // --- 초기화 ---
-      document.addEventListener("DOMContentLoaded", () => {
-        try {
-          if (!firebaseConfig.apiKey) {
-            throw new Error("Firebase config is missing.");
+      function drawGridLines() {
+        const { shape, slices } = missions[currentStage];
+        const radius = canvas.width * 0.4;
+        const rectSize = { w: canvas.width * 0.8, h: canvas.height * 0.8 };
+        const rectPos = {
+          x: (canvas.width - rectSize.w) / 2,
+          y: (canvas.height - rectSize.h) / 2,
+        };
+
+        ctx.save();
+        ctx.strokeStyle = "#cbd5e1"; // slate-300
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+
+        switch (shape) {
+          case "circle":
+            for (let i = 0; i < slices / 2; i++) {
+              const angle = (i * Math.PI) / (slices / 2);
+              const x1 = center.x + radius * Math.cos(angle);
+              const y1 = center.y + radius * Math.sin(angle);
+              const x2 = center.x - radius * Math.cos(angle);
+              const y2 = center.y - radius * Math.sin(angle);
+              ctx.moveTo(x1, y1);
+              ctx.lineTo(x2, y2);
+            }
+            break;
+          case "pentagon":
+          case "triangle":
+            const vertexAngleOffset = -Math.PI / 2;
+            for (let i = 0; i < slices; i++) {
+              const angle = (i * 2 * Math.PI) / slices + vertexAngleOffset;
+              const x = center.x + radius * Math.cos(angle);
+              const y = center.y + radius * Math.sin(angle);
+              ctx.moveTo(center.x, center.y);
+              ctx.lineTo(x, y);
+            }
+            const sliceAngleOffset = Math.PI / 2;
+            for (let i = 0; i < slices; i++) {
+              const angle = (i * 2 * Math.PI) / slices + sliceAngleOffset;
+              const x = center.x + radius * Math.cos(angle);
+              const y = center.y + radius * Math.sin(angle);
+              ctx.moveTo(center.x, center.y);
+              ctx.lineTo(x, y);
+            }
+            break;
+          case "rectangle":
+            for (let i = 1; i < slices; i++) {
+              const x = rectPos.x + i * (rectSize.w / slices);
+              ctx.moveTo(x, rectPos.y);
+              ctx.lineTo(x, rectPos.y + rectSize.h);
+            }
+            for (let i = 1; i < slices; i++) {
+              const y = rectPos.y + i * (rectSize.h / slices);
+              ctx.moveTo(rectPos.x, y);
+              ctx.lineTo(rectPos.x + rectSize.w, y);
+            }
+            if (slices === 2) {
+              ctx.moveTo(rectPos.x, rectPos.y);
+              ctx.lineTo(rectPos.x + rectSize.w, rectPos.y + rectSize.h);
+              ctx.moveTo(rectPos.x + rectSize.w, rectPos.y);
+              ctx.lineTo(rectPos.x, rectPos.y + rectSize.h);
+            }
+            break;
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawShape() {
+        const { shape } = missions[currentStage];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (difficulty === "easy") {
+          drawGridLines();
+        }
+
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        const radius = canvas.width * 0.4;
+        const rectSize = { w: canvas.width * 0.8, h: canvas.height * 0.8 };
+        const rectPos = {
+          x: (canvas.width - rectSize.w) / 2,
+          y: (canvas.height - rectSize.h) / 2,
+        };
+
+        switch (shape) {
+          case "circle":
+            ctx.arc(center.x, center.y, radius, 0, Math.PI * 2);
+            break;
+          case "rectangle":
+            ctx.rect(rectPos.x, rectPos.y, rectSize.w, rectSize.h);
+            break;
+          case "triangle":
+            for (let i = 0; i < 3; i++) {
+              const angle = (i * 2 * Math.PI) / 3 - Math.PI / 2;
+              const x = center.x + radius * Math.cos(angle);
+              const y = center.y + radius * Math.sin(angle);
+              i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            break;
+          case "pentagon":
+            for (let i = 0; i < 5; i++) {
+              const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+              const x = center.x + radius * Math.cos(angle);
+              const y = center.y + radius * Math.sin(angle);
+              i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            break;
+        }
+        ctx.stroke();
+
+        if (
+          shape === "circle" ||
+          shape === "triangle" ||
+          shape === "pentagon"
+        ) {
+          ctx.beginPath();
+          ctx.fillStyle = "#fb7185";
+          ctx.arc(center.x, center.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function redrawAll() {
+        if (currentStage >= missions.length) return;
+        drawShape();
+        ctx.strokeStyle = "#0ea5e9";
+        ctx.lineWidth = 2;
+        userLines.forEach((line) => {
+          ctx.beginPath();
+          ctx.moveTo(line.startX, line.startY);
+          ctx.lineTo(line.endX, line.endY);
+          ctx.stroke();
+        });
+        if (isDrawing && currentLine.startX !== undefined) {
+          ctx.strokeStyle = "#f43f5e";
+          ctx.beginPath();
+          ctx.moveTo(currentLine.startX, currentLine.startY);
+          ctx.lineTo(currentLine.endX, currentLine.endY);
+          ctx.stroke();
+        }
+      }
+
+      function getMousePos(evt) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = evt.touches ? evt.touches[0] : evt;
+        return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+      }
+
+      function startDrawing(e) {
+        if (isComplete) return;
+        e.preventDefault();
+        isDrawing = true;
+        const pos = getMousePos(e);
+        currentLine = { startX: pos.x, startY: pos.y };
+      }
+
+      function draw(e) {
+        if (!isDrawing || isComplete) return;
+        e.preventDefault();
+        const pos = getMousePos(e);
+        currentLine.endX = pos.x;
+        currentLine.endY = pos.y;
+        redrawAll();
+      }
+
+      function stopDrawing(e) {
+        if (!isDrawing || isComplete) return;
+        e.preventDefault();
+        isDrawing = false;
+        userLines.push({ ...currentLine });
+        currentLine = {};
+        redrawAll();
+        updateAccuracy();
+      }
+
+      function calculateAccuracy() {
+        if (userLines.length === 0) return 0;
+        const mission = missions[currentStage];
+        let accuracy = 0;
+        if (
+          mission.shape === "circle" ||
+          ["triangle", "pentagon"].includes(mission.shape)
+        ) {
+          accuracy = checkRadialDivision(mission);
+        } else if (mission.shape === "rectangle") {
+          accuracy = checkRectangleDivision(mission);
+        }
+        return Math.round(accuracy * 100);
+      }
+
+      function updateAccuracy() {
+        const percentage = calculateAccuracy();
+        accuracyText.textContent = `정확도: ${percentage}%`;
+
+        if (isComplete) return;
+
+        if (percentage >= 90) {
+          isComplete = true;
+          const imageData = canvas.toDataURL("image/png");
+          stageResults.push({
+            mission: missions[currentStage],
+            accuracy: percentage,
+            imageData: imageData,
+          });
+
+          accuracyText.classList.add("hidden");
+          resultText.textContent = `${percentage}% 달성! 잘했어요!`;
+          resultCard.classList.remove("hidden");
+          resultCard.classList.add("success");
+          nextButton.classList.remove("hidden");
+
+          if (percentage < 100) {
+            clearButton.classList.remove("hidden");
+          } else {
+            clearButton.classList.add("hidden");
           }
-          app = initializeApp(firebaseConfig);
-          auth = getAuth(app);
-          db = getFirestore(app);
-          setupEventListeners();
-          setupAuthListener();
-        } catch (error) {
-          console.error("Firebase 초기화 오류:", error);
-          showCustomAlert(
-            "초기화 실패: Firebase 설정이 누락되었거나 잘못되었습니다. 관리자에게 문의하세요."
+        }
+      }
+
+      function checkRadialDivision(mission) {
+        const { slices, shape } = mission;
+        const radius = canvas.width * 0.4;
+
+        let totalCenterError = 0;
+        let totalLengthError = 0;
+        let linesChecked = 0;
+        let exteriorPoints = [];
+
+        if (shape === "circle") {
+          const expectedLines = slices / 2;
+          if (userLines.length !== expectedLines) return 0;
+
+          userLines.forEach((line) => {
+            linesChecked++;
+            const lineLength = Math.hypot(
+              line.endX - line.startX,
+              line.endY - line.startY
+            );
+            const midPoint = {
+              x: (line.startX + line.endX) / 2,
+              y: (line.startY + line.endY) / 2,
+            };
+
+            const centerDist = Math.hypot(
+              midPoint.x - center.x,
+              midPoint.y - center.y
+            );
+            totalCenterError += Math.min(1, centerDist / (radius * 0.2));
+
+            const idealLength = radius * 2;
+            totalLengthError += Math.min(
+              1,
+              Math.abs(lineLength - idealLength) / (idealLength * 0.2)
+            );
+
+            exteriorPoints.push(
+              { x: line.startX, y: line.startY },
+              { x: line.endX, y: line.endY }
+            );
+          });
+        } else {
+          // triangle, pentagon
+          const expectedLines = slices;
+          if (userLines.length !== expectedLines) return 0;
+
+          userLines.forEach((line) => {
+            linesChecked++;
+            const dist1 = Math.hypot(
+              line.startX - center.x,
+              line.startY - center.y
+            );
+            const dist2 = Math.hypot(
+              line.endX - center.x,
+              line.endY - center.y
+            );
+
+            const centerPoint =
+              dist1 < dist2
+                ? { x: line.startX, y: line.startY }
+                : { x: line.endX, y: line.endY };
+            const exteriorPoint =
+              dist1 < dist2
+                ? { x: line.endX, y: line.endY }
+                : { x: line.startX, y: line.startY };
+
+            const centerDist = Math.hypot(
+              centerPoint.x - center.x,
+              centerPoint.y - center.y
+            );
+            totalCenterError += Math.min(1, centerDist / (radius * 0.2));
+
+            const exteriorDist = Math.hypot(
+              exteriorPoint.x - center.x,
+              exteriorPoint.y - center.y
+            );
+            totalLengthError += Math.min(
+              1,
+              Math.abs(exteriorDist - radius) / (radius * 0.25)
+            );
+
+            exteriorPoints.push(exteriorPoint);
+          });
+        }
+
+        const centerAccuracy =
+          linesChecked > 0
+            ? Math.max(0, 1 - totalCenterError / linesChecked)
+            : 0;
+        const lengthAccuracy =
+          linesChecked > 0
+            ? Math.max(0, 1 - totalLengthError / linesChecked)
+            : 1;
+
+        let angles = exteriorPoints.map(
+          (p) =>
+            ((Math.atan2(p.y - center.y, p.x - center.x) * 180) / Math.PI +
+              360) %
+            360
+        );
+        angles = angles.filter(
+          (v, i, a) =>
+            a.findIndex(
+              (t) => Math.abs(t - v) < 10 || Math.abs(t - v) > 350
+            ) === i
+        );
+
+        if (angles.length !== slices)
+          return (centerAccuracy * 0.6 + lengthAccuracy * 0.4) * 0.5;
+
+        angles.sort((a, b) => a - b);
+        const idealAngle = 360 / slices;
+        let totalAngleError = 0;
+        for (let i = 0; i < angles.length; i++) {
+          const diff =
+            i === angles.length - 1
+              ? 360 - angles[i] + angles[0]
+              : angles[i + 1] - angles[i];
+          totalAngleError += Math.abs(diff - idealAngle);
+        }
+
+        const angleAccuracy = Math.max(0, 1 - totalAngleError / 360);
+
+        const finalAccuracy =
+          centerAccuracy * 0.5 + lengthAccuracy * 0.4 + angleAccuracy * 0.1;
+
+        return finalAccuracy;
+      }
+
+      function checkRectangleDivision(mission) {
+        const { slices } = mission;
+        const rectSize = { w: canvas.width * 0.8, h: canvas.height * 0.8 };
+        const rectPos = {
+          x: (canvas.width - rectSize.w) / 2,
+          y: (canvas.height - rectSize.h) / 2,
+        };
+        const tolerance = canvas.width * 0.05;
+
+        if (slices === 2 && userLines.length === 1) {
+          const line = userLines[0];
+          const corners = [
+            { x: rectPos.x, y: rectPos.y },
+            { x: rectPos.x + rectSize.w, y: rectPos.y },
+            { x: rectPos.x, y: rectPos.y + rectSize.h },
+            { x: rectPos.x + rectSize.w, y: rectPos.y + rectSize.h },
+          ];
+          const isDiagonal =
+            (Math.hypot(
+              line.startX - corners[0].x,
+              line.startY - corners[0].y
+            ) < tolerance &&
+              Math.hypot(line.endX - corners[3].x, line.endY - corners[3].y) <
+                tolerance) ||
+            (Math.hypot(
+              line.startX - corners[3].x,
+              line.startY - corners[3].y
+            ) < tolerance &&
+              Math.hypot(line.endX - corners[0].x, line.endY - corners[0].y) <
+                tolerance) ||
+            (Math.hypot(
+              line.startX - corners[1].x,
+              line.startY - corners[1].y
+            ) < tolerance &&
+              Math.hypot(line.endX - corners[2].x, line.endY - corners[2].y) <
+                tolerance) ||
+            (Math.hypot(
+              line.startX - corners[2].x,
+              line.startY - corners[2].y
+            ) < tolerance &&
+              Math.hypot(line.endX - corners[1].x, line.endY - corners[1].y) <
+                tolerance);
+          if (isDiagonal) return 1.0;
+        }
+
+        if (userLines.length !== slices - 1) return 0;
+
+        const isVertical = userLines.every(
+          (line) => Math.abs(line.startX - line.endX) < tolerance
+        );
+        const isHorizontal = userLines.every(
+          (line) => Math.abs(line.startY - line.endY) < tolerance
+        );
+
+        if (!isVertical && !isHorizontal) return 0;
+
+        let totalSpacingError = 0;
+        let totalBoundaryError = 0;
+
+        if (isVertical) {
+          const idealSpacing = rectSize.w / slices;
+          let coords = userLines.map((line) => (line.startX + line.endX) / 2);
+          coords.sort((a, b) => a - b);
+
+          let lastPos = rectPos.x;
+          coords.forEach((c) => {
+            totalSpacingError += Math.abs(c - lastPos - idealSpacing);
+            lastPos = c;
+          });
+          totalSpacingError += Math.abs(
+            rectPos.x + rectSize.w - lastPos - idealSpacing
           );
+
+          userLines.forEach((line) => {
+            const top = Math.min(line.startY, line.endY);
+            const bottom = Math.max(line.startY, line.endY);
+            totalBoundaryError += Math.abs(top - rectPos.y);
+            totalBoundaryError += Math.abs(rectPos.y + rectSize.h - bottom);
+          });
+
+          const spacingAccuracy = Math.max(
+            0,
+            1 - totalSpacingError / rectSize.w
+          );
+          const boundaryAccuracy = Math.max(
+            0,
+            1 - totalBoundaryError / (userLines.length * rectSize.h)
+          );
+          return spacingAccuracy * 0.6 + boundaryAccuracy * 0.4;
+        } else {
+          // isHorizontal
+          const idealSpacing = rectSize.h / slices;
+          let coords = userLines.map((line) => (line.startY + line.endY) / 2);
+          coords.sort((a, b) => a - b);
+
+          let lastPos = rectPos.y;
+          coords.forEach((c) => {
+            totalSpacingError += Math.abs(c - lastPos - idealSpacing);
+            lastPos = c;
+          });
+          totalSpacingError += Math.abs(
+            rectPos.y + rectSize.h - lastPos - idealSpacing
+          );
+
+          userLines.forEach((line) => {
+            const left = Math.min(line.startX, line.endX);
+            const right = Math.max(line.startX, line.endX);
+            totalBoundaryError += Math.abs(left - rectPos.x);
+            totalBoundaryError += Math.abs(rectPos.x + rectSize.w - right);
+          });
+
+          const spacingAccuracy = Math.max(
+            0,
+            1 - totalSpacingError / rectSize.h
+          );
+          const boundaryAccuracy = Math.max(
+            0,
+            1 - totalBoundaryError / (userLines.length * rectSize.w)
+          );
+          return spacingAccuracy * 0.6 + boundaryAccuracy * 0.4;
+        }
+      }
+
+      function setupMission() {
+        if (currentStage >= missions.length) {
+          showSummary();
+          return;
+        }
+        const mission = missions[currentStage];
+        missionText.textContent = `미션: ${mission.text}`;
+        isComplete = false;
+        userLines = [];
+        accuracyText.textContent = `정확도: 0%`;
+        accuracyText.classList.remove("hidden");
+        resultCard.classList.add("hidden");
+        nextButton.classList.add("hidden");
+        clearButton.classList.remove("hidden");
+        redrawAll();
+      }
+
+      function nextMission() {
+        currentStage++;
+        setupMission();
+      }
+
+      function showSummary() {
+        gameScreen.classList.add("hidden");
+        summaryScreen.classList.remove("hidden");
+        header.classList.add("hidden");
+
+        const avg =
+          stageResults.length > 0
+            ? stageResults.reduce((sum, r) => sum + r.accuracy, 0) /
+              stageResults.length
+            : 0;
+        finalAccuracy.textContent = `최종 평균 정확도: ${Math.round(avg)}%`;
+
+        resultsGrid.innerHTML = "";
+        stageResults.forEach((result) => {
+          const resultEl = document.createElement("div");
+          resultEl.className =
+            "border rounded-lg p-2 bg-white text-center shadow";
+          resultEl.innerHTML = `
+                    <img src="${result.imageData}" alt="${result.mission.text}" class="rounded-md mx-auto mb-2">
+                    <p class="text-sm font-semibold text-slate-700">${result.mission.text}</p>
+                    <p class="text-xs text-green-600 font-bold">${result.accuracy}% 달성</p>
+                `;
+          resultsGrid.appendChild(resultEl);
+        });
+      }
+
+      function restartGame() {
+        currentStage = 0;
+        stageResults = [];
+        summaryScreen.classList.add("hidden");
+        difficultyScreen.classList.remove("hidden");
+      }
+
+      function startGame(selectedDifficulty) {
+        difficulty = selectedDifficulty;
+        difficultyScreen.classList.add("hidden");
+        gameScreen.classList.remove("hidden");
+        header.classList.remove("hidden");
+        resizeCanvas();
+      }
+
+      // Event Listeners
+      clearButton.addEventListener("click", () => {
+        if (isComplete) {
+          stageResults.pop();
+        }
+        isComplete = false;
+        userLines = [];
+        accuracyText.textContent = `정확도: 0%`;
+        accuracyText.classList.remove("hidden");
+        resultCard.classList.add("hidden");
+        nextButton.classList.add("hidden");
+        clearButton.classList.remove("hidden");
+        redrawAll();
+      });
+
+      nextButton.addEventListener("click", nextMission);
+
+      // [FIX] 이미지 저장 품질 향상
+      downloadButton.addEventListener("click", () => {
+        html2canvas(document.getElementById("summary-screen"), {
+          backgroundColor: "#f8fafc",
+          scale: 3, // 해상도를 3배로 높여서 저장
+          useCORS: true,
+        }).then((canvas) => {
+          const link = document.createElement("a");
+          link.download = "도형-나누기-챌린지-결과.png";
+          link.href = canvas.toDataURL("image/png");
+          link.click();
+        });
+      });
+
+      restartButton.addEventListener("click", restartGame);
+
+      canvas.addEventListener("pointerdown", startDrawing);
+      canvas.addEventListener("pointermove", draw);
+      canvas.addEventListener("pointerup", stopDrawing);
+      canvas.addEventListener("pointerleave", stopDrawing);
+
+      easyModeBtn.addEventListener("click", () => startGame("easy"));
+      hardModeBtn.addEventListener("click", () => startGame("hard"));
+
+      window.addEventListener("resize", () => {
+        if (!gameScreen.classList.contains("hidden")) {
+          resizeCanvas();
         }
       });
 
-      // --- 인증 설정 ---
-      function setupAuthListener() {
-        onAuthStateChanged(auth, async (user) => {
-          if (user) {
-            userId = user.uid;
-            if (!currentGameId) {
-              await checkForExistingSession();
-            }
-          } else {
-            try {
-              await signInAnonymously(auth);
-            } catch (error) {
-              console.error("Authentication Error:", error);
-              if (error.code === "auth/configuration-not-found") {
-                showCustomAlert(
-                  "인증 설정 오류: Firebase 콘솔에서 '익명' 로그인 방식이 활성화되어 있는지 확인해주세요."
-                );
-              } else {
-                showCustomAlert("인증에 실패했습니다: " + error.message);
-              }
-              document.getElementById("home-error").textContent =
-                "인증에 실패했습니다. Firebase 설정을 확인해주세요.";
-            }
-          }
-        });
-      }
-
-      // --- 이벤트 리스너 설정 ---
-      function setupEventListeners() {
-        // 홈 화면
-        document
-          .getElementById("show-create-room-btn")
-          .addEventListener("click", () => {
-            document
-              .getElementById("create-room-form")
-              .classList.remove("hidden");
-            document.getElementById("join-room-form").classList.add("hidden");
-          });
-        document
-          .getElementById("show-join-room-btn")
-          .addEventListener("click", () => {
-            document
-              .getElementById("join-room-form")
-              .classList.remove("hidden");
-            document.getElementById("create-room-form").classList.add("hidden");
-          });
-        document
-          .getElementById("create-room-btn")
-          .addEventListener("click", createRoom);
-        document
-          .getElementById("join-room-btn")
-          .addEventListener("click", joinRoom);
-        document
-          .getElementById("copy-code-btn")
-          .addEventListener("click", copyRoomCode);
-        document
-          .getElementById("enable-random-fill")
-          .addEventListener("change", (e) => {
-            document
-              .getElementById("random-words-container")
-              .classList.toggle("hidden", !e.target.checked);
-          });
-
-        // 대기실
-        document
-          .getElementById("random-fill-btn")
-          .addEventListener("click", randomFillBoard);
-        document
-          .getElementById("submit-board-btn")
-          .addEventListener("click", submitBoard);
-        document
-          .getElementById("start-game-btn")
-          .addEventListener("click", startGame);
-
-        // 게임 화면
-        document
-          .getElementById("skip-turn-btn")
-          .addEventListener("click", skipTurn);
-        document
-          .getElementById("manual-end-game-btn")
-          .addEventListener("click", manualEndGame);
-
-        // 결과 화면
-        document
-          .getElementById("back-to-home-btn")
-          .addEventListener("click", () => {
-            clearSession();
-            location.reload();
-          });
-      }
-
-      // --- 화면 전환 ---
-      function showScreen(screenName) {
-        Object.values(screens).forEach((screen) =>
-          screen.classList.add("hidden")
-        );
-        if (screens[screenName]) {
-          screens[screenName].classList.remove("hidden");
-        }
-      }
-
-      // --- 방 생성 및 참여 ---
-      async function createRoom() {
-        if (!userId) {
-          document.getElementById("home-error").textContent =
-            "사용자 인증 정보를 가져올 수 없습니다.";
-          return;
-        }
-        isHost = true;
-        userNickname = "호스트";
-
-        const topic = document.getElementById("topic").value.trim();
-        if (!topic) {
-          document.getElementById("home-error").textContent =
-            "빙고 주제를 입력해주세요.";
-          return;
-        }
-
-        const size = parseInt(document.getElementById("size").value);
-        const winCondition = parseInt(
-          document.getElementById("win-condition").value
-        );
-        const endCondition = parseInt(
-          document.getElementById("end-condition").value
-        );
-        const enableRandomFill =
-          document.getElementById("enable-random-fill").checked;
-        let randomWords = [];
-        if (enableRandomFill) {
-          const rawWords = document.getElementById("random-words-list").value;
-          randomWords = rawWords
-            .split(/[\n,]/)
-            .map((word) => word.trim())
-            .filter((word) => word.length > 0);
-        }
-        currentRoomCode = generateRoomCode();
-
-        const gameData = {
-          hostId: userId,
-          roomCode: currentRoomCode,
-          topic: topic,
-          size: size,
-          winCondition: winCondition,
-          endCondition: endCondition,
-          isRandomFillEnabled: enableRandomFill,
-          randomWords: randomWords,
-          status: "waiting",
-          players: {
-            [userId]: {
-              nickname: userNickname,
-              isReady: true,
-              board: [],
-              marked: [],
-              bingoCount: 0,
-              isWinner: false,
-            },
-          },
-          calledWords: [],
-          turn: null,
-          wordRequests: [],
-          winners: [],
-          createdAt: new Date(),
-        };
-
-        try {
-          const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-          const gameRef = doc(collection(db, gameCollectionPath));
-          currentGameId = gameRef.id;
-          await setDoc(gameRef, gameData);
-
-          saveSession();
-          listenToGameChanges(currentGameId);
-          showScreen("waiting");
-        } catch (error) {
-          console.error("방 생성 오류:", error);
-          document.getElementById("home-error").textContent =
-            "방을 만드는 데 실패했습니다.";
-        }
-      }
-
-      async function joinRoom() {
-        const roomCode = document
-          .getElementById("room-code-input")
-          .value.trim()
-          .toUpperCase();
-        const nickname = document.getElementById("nickname-input").value.trim();
-
-        if (!roomCode || !nickname) {
-          document.getElementById("home-error").textContent =
-            "방 코드와 닉네임을 모두 입력해주세요.";
-          return;
-        }
-        if (!userId) {
-          document.getElementById("home-error").textContent =
-            "사용자 인증 정보를 가져올 수 없습니다.";
-          return;
-        }
-
-        userNickname = nickname;
-        isHost = false;
-
-        try {
-          const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-          const q = query(
-            collection(db, gameCollectionPath),
-            where("roomCode", "==", roomCode)
-          );
-          const querySnapshot = await getDocs(q);
-
-          if (querySnapshot.empty) {
-            document.getElementById("home-error").textContent =
-              "존재하지 않는 방 코드입니다.";
-            return;
-          }
-
-          const gameDoc = querySnapshot.docs[0];
-          currentGameId = gameDoc.id;
-          const gameData = gameDoc.data();
-
-          if (gameData.status !== "waiting") {
-            document.getElementById("home-error").textContent =
-              "이미 시작되었거나 종료된 게임입니다.";
-            return;
-          }
-
-          if (
-            Object.values(gameData.players).some(
-              (p) => p.nickname.toLowerCase() === nickname.toLowerCase()
-            )
-          ) {
-            document.getElementById("home-error").textContent =
-              "이미 사용 중인 닉네임입니다.";
-            return;
-          }
-
-          const newPlayerData = {
-            nickname: userNickname,
-            isReady: false,
-            board: [],
-            marked: [],
-            bingoCount: 0,
-            isWinner: false,
-          };
-
-          const gameRef = doc(db, gameCollectionPath, currentGameId);
-          await updateDoc(gameRef, {
-            [`players.${userId}`]: newPlayerData,
-          });
-
-          saveSession();
-          listenToGameChanges(currentGameId);
-          showScreen("waiting");
-        } catch (error) {
-          console.error("방 참여 오류:", error);
-          document.getElementById("home-error").textContent =
-            "방에 참여하는 데 실패했습니다.";
-        }
-      }
-
-      function listenToGameChanges(gameId) {
-        if (unsubscribeGame) unsubscribeGame();
-
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, gameId);
-
-        unsubscribeGame = onSnapshot(
-          gameRef,
-          (doc) => {
-            if (!doc.exists()) {
-              showCustomAlert(
-                "호스트가 게임을 종료했거나 방이 사라졌습니다. 초기 화면으로 돌아갑니다."
-              );
-              clearSession();
-              setTimeout(() => location.reload(), 2000);
-              return;
-            }
-            const gameData = doc.data();
-            updateUI(gameData);
-          },
-          (error) => {
-            console.error("게임 데이터 수신 오류:", error);
-            showCustomAlert("게임 서버와 연결이 끊겼습니다.");
-            clearSession();
-            setTimeout(() => location.reload(), 2000);
-          }
-        );
-      }
-
-      function updateUI(gameData) {
-        if (!gameData) return;
-
-        if (gameData.status === "waiting") {
-          showScreen("waiting");
-          updateWaitingRoomUI(gameData);
-        } else if (gameData.status === "playing") {
-          showScreen("game");
-          updateGameScreenUI(gameData);
-        } else if (gameData.status === "finished") {
-          showScreen("result");
-          updateResultScreenUI(gameData);
-        }
-      }
-
-      function updateWaitingRoomUI(gameData) {
-        document.getElementById("wait-topic").textContent = gameData.topic;
-        document.getElementById("room-code-display").textContent =
-          gameData.roomCode;
-
-        const players = Object.values(gameData.players);
-        const playerListEl = document.getElementById("player-list");
-        playerListEl.innerHTML = "";
-        players.forEach((player) => {
-          const li = document.createElement("li");
-          li.className =
-            "flex items-center justify-between p-2 rounded-md bg-gray-50";
-          li.innerHTML = `
-                    <span class="font-medium">${player.nickname}</span>
-                    <span class="${
-                      player.isReady ? "text-emerald-500" : "text-gray-400"
-                    }">${player.isReady ? "준비 완료" : "준비 중..."}</span>
-                `;
-          playerListEl.appendChild(li);
-        });
-        document.getElementById("player-count").textContent = players.length;
-
-        if (isHost) {
-          document.getElementById("guest-bingo-setup").classList.add("hidden");
-          document
-            .getElementById("host-bingo-preview")
-            .classList.remove("hidden");
-
-          const allBoardsPreviewEl = document.getElementById(
-            "all-bingo-boards-preview"
-          );
-          allBoardsPreviewEl.innerHTML = "";
-          Object.values(gameData.players).forEach((player) => {
-            if (player.nickname === "호스트") return;
-            const playerBoardDiv = document.createElement("div");
-            playerBoardDiv.className = "p-2 border rounded-lg";
-            playerBoardDiv.innerHTML = `<p class="font-semibold text-center mb-2">${player.nickname}</p>`;
-            const boardGrid = createBoardElement(
-              gameData.size,
-              player.board,
-              [],
-              false,
-              null
-            );
-            playerBoardDiv.appendChild(boardGrid);
-            allBoardsPreviewEl.appendChild(playerBoardDiv);
-          });
-
-          const allReady = players.every((p) => p.isReady);
-          const startGameBtn = document.getElementById("start-game-btn");
-          startGameBtn.disabled = !allReady || players.length < 2;
-          startGameBtn.title = startGameBtn.disabled
-            ? players.length < 2
-              ? "최소 2명 이상 참여해야 시작할 수 있습니다."
-              : "모든 참가자가 준비를 완료해야 시작할 수 있습니다."
-            : "";
-        } else {
-          document
-            .getElementById("guest-bingo-setup")
-            .classList.remove("hidden");
-          document.getElementById("host-bingo-preview").classList.add("hidden");
-
-          document
-            .getElementById("random-fill-btn")
-            .classList.toggle("hidden", !gameData.isRandomFillEnabled);
-
-          const myPlayerData = gameData.players[userId];
-          if (myPlayerData && myPlayerData.isReady) {
-            document.getElementById("my-bingo-grid-container").innerHTML = "";
-            const board = createBoardElement(
-              gameData.size,
-              myPlayerData.board,
-              [],
-              false,
-              null
-            );
-            document
-              .getElementById("my-bingo-grid-container")
-              .appendChild(board);
-            document.getElementById("random-fill-btn").classList.add("hidden");
-            document.getElementById("submit-board-btn").classList.add("hidden");
-            document.getElementById("guest-wait-message").textContent =
-              "빙고판 제출 완료! 게임이 시작되기를 기다려주세요.";
-          } else {
-            createBingoInputGrid(gameData.size);
-          }
-        }
-      }
-
-      function updateGameScreenUI(gameData) {
-        document.getElementById("game-topic").textContent = gameData.topic;
-
-        const turnPlayerNickname =
-          gameData.players[gameData.turn]?.nickname || "호스트가 지정해주세요";
-        document.getElementById("current-turn-player").textContent =
-          turnPlayerNickname;
-
-        if (isHost) {
-          document.getElementById("guest-game-view").classList.add("hidden");
-          document.getElementById("host-game-view").classList.remove("hidden");
-          document.getElementById("host-controls").classList.remove("hidden");
-
-          const hostAllBoardsView = document.getElementById(
-            "host-all-boards-view"
-          );
-          hostAllBoardsView.innerHTML = "";
-          Object.entries(gameData.players).forEach(([pid, player]) => {
-            if (pid === gameData.hostId) return;
-
-            const playerContainer = document.createElement("div");
-            playerContainer.className = "bg-white p-4 rounded-xl shadow-lg";
-
-            const nicknameEl = document.createElement("h4");
-            nicknameEl.className = "text-lg font-bold mb-2 text-center";
-            nicknameEl.textContent = player.nickname;
-            playerContainer.appendChild(nicknameEl);
-
-            const boardGrid = createBoardElement(
-              gameData.size,
-              player.board,
-              player.marked,
-              false,
-              pid
-            );
-            playerContainer.appendChild(boardGrid);
-            hostAllBoardsView.appendChild(playerContainer);
-          });
-        } else {
-          // Guest view
-          document.getElementById("guest-game-view").classList.remove("hidden");
-          document.getElementById("host-game-view").classList.add("hidden");
-          document.getElementById("host-controls").classList.add("hidden");
-
-          const myPlayerData = gameData.players[userId];
-          if (!myPlayerData) return;
-
-          document.getElementById("my-nickname-display").textContent =
-            userNickname;
-          const myBoardEl = document.getElementById("game-my-bingo-grid");
-          myBoardEl.innerHTML = "";
-          const myBoardGrid = createBoardElement(
-            gameData.size,
-            myPlayerData.board,
-            myPlayerData.marked,
-            gameData.turn === userId,
-            userId
-          );
-          myBoardEl.appendChild(myBoardGrid);
-          document
-            .getElementById("my-turn-actions")
-            .classList.toggle("hidden", gameData.turn !== userId);
-        }
-
-        const playerListEl = document.getElementById("game-player-list");
-        playerListEl.innerHTML = "";
-        const sortedPlayers = Object.entries(gameData.players).sort(
-          ([, a], [, b]) => b.bingoCount - a.bingoCount
-        );
-
-        sortedPlayers.forEach(([pid, player]) => {
-          if (pid === gameData.hostId) return;
-
-          const li = document.createElement("li");
-          li.className = `p-3 rounded-lg transition-all duration-300 ${
-            gameData.turn === pid
-              ? "turn-highlight bg-emerald-50"
-              : "bg-gray-50"
-          }`;
-          if (isHost) {
-            li.classList.add("host-clickable");
-            li.onclick = () => setPlayerTurn(pid);
-          }
-          li.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="font-bold ${
-                          player.isWinner ? "text-amber-500" : ""
-                        }">${player.nickname} ${
-            player.isWinner ? "🏆" : ""
-          }</span>
-                        <span class="text-lg font-semibold">${
-                          player.bingoCount
-                        } 빙고</span>
-                    </div>
-                `;
-          playerListEl.appendChild(li);
-        });
-
-        const calledWordsEl = document.getElementById("called-words-list");
-        calledWordsEl.innerHTML = "";
-        gameData.calledWords
-          .slice()
-          .reverse()
-          .forEach((word) => {
-            const div = document.createElement("div");
-            div.className = "px-2 py-1 bg-white rounded shadow-sm";
-            div.textContent = word;
-            calledWordsEl.appendChild(div);
-          });
-
-        const requestsListEl = document.getElementById("word-requests-list");
-        requestsListEl.innerHTML = "";
-        if (gameData.wordRequests && gameData.wordRequests.length > 0) {
-          gameData.wordRequests.forEach((req) => {
-            const div = document.createElement("div");
-            div.className = "p-2 border rounded-md";
-            div.innerHTML = `<p class="text-sm">'<span class="font-bold">${req.nickname}</span>'님이 '<span class="text-blue-600">${req.word}</span>' 인정 요청</p>`;
-
-            const btnContainer = document.createElement("div");
-            btnContainer.className = "flex space-x-2 mt-1";
-
-            const approveBtn = document.createElement("button");
-            approveBtn.textContent = "인정";
-            approveBtn.className =
-              "flex-1 bg-emerald-500 text-white px-2 py-1 rounded-md text-sm hover:bg-emerald-600";
-            approveBtn.onclick = () => approveWordRequest(req);
-
-            const rejectBtn = document.createElement("button");
-            rejectBtn.textContent = "무시";
-            rejectBtn.className =
-              "flex-1 bg-gray-500 text-white px-2 py-1 rounded-md text-sm hover:bg-gray-600";
-            rejectBtn.onclick = () => rejectWordRequest(req);
-
-            btnContainer.appendChild(approveBtn);
-            btnContainer.appendChild(rejectBtn);
-            div.appendChild(btnContainer);
-            requestsListEl.appendChild(div);
-          });
-        } else {
-          requestsListEl.innerHTML =
-            '<p class="text-gray-500 text-sm">아직 단어 인정 요청이 없습니다.</p>';
-        }
-      }
-
-      function updateResultScreenUI(gameData) {
-        clearSession();
-        const rankingsEl = document.getElementById("final-rankings");
-        rankingsEl.innerHTML = "";
-        const sortedPlayers = Object.values(gameData.players)
-          .filter((p) => p.nickname !== "호스트")
-          .sort((a, b) => b.bingoCount - a.bingoCount);
-
-        sortedPlayers.forEach((player, index) => {
-          const rankDiv = document.createElement("div");
-          rankDiv.className =
-            "p-3 rounded-lg flex items-center justify-between text-left";
-          let rankText;
-          if (index === 0) {
-            rankText = "🥇 1위";
-            rankDiv.classList.add("bg-amber-100");
-          } else if (index === 1) {
-            rankText = "🥈 2위";
-            rankDiv.classList.add("bg-gray-200");
-          } else if (index === 2) {
-            rankText = "🥉 3위";
-            rankDiv.classList.add("bg-orange-100");
-          } else {
-            rankText = `${index + 1}위`;
-            rankDiv.classList.add("bg-gray-100");
-          }
-
-          rankDiv.innerHTML = `
-                    <span class="text-xl font-bold w-16">${rankText}</span>
-                    <span class="text-lg font-medium flex-1">${player.nickname}</span>
-                    <span class="text-lg font-semibold">${player.bingoCount} 빙고</span>
-                `;
-          rankingsEl.appendChild(rankDiv);
-        });
-
-        const topWordsEl = document.getElementById("top-words");
-        topWordsEl.innerHTML = "";
-        const wordCounts = {};
-        Object.values(gameData.players).forEach((player) => {
-          if (!player.board) return;
-          for (let i = 0; i < player.board.length; i++) {
-            if (player.marked[i]) {
-              const word = player.board[i];
-              if (word) wordCounts[word] = (wordCounts[word] || 0) + 1;
-            }
-          }
-        });
-
-        const sortedWords = Object.entries(wordCounts).sort(
-          ([, a], [, b]) => b - a
-        );
-        sortedWords.slice(0, 5).forEach(([word, count]) => {
-          const wordDiv = document.createElement("div");
-          wordDiv.className = "p-2 bg-gray-50 rounded-md";
-          wordDiv.textContent = `${word} (${count}회)`;
-          topWordsEl.appendChild(wordDiv);
-        });
-      }
-
-      function createBingoInputGrid(size) {
-        const container = document.getElementById("my-bingo-grid-container");
-        container.innerHTML = "";
-        const grid = document.createElement("div");
-        grid.className = "grid gap-1";
-        grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-
-        for (let i = 0; i < size * size; i++) {
-          const cell = document.createElement("div");
-          cell.className =
-            "bingo-cell bg-white border border-gray-200 rounded-md";
-          const inputDiv = document.createElement("div");
-          inputDiv.contentEditable = true;
-          inputDiv.dataset.index = i;
-          inputDiv.className = "bingo-input-div";
-          cell.appendChild(inputDiv);
-          grid.appendChild(cell);
-        }
-        container.appendChild(grid);
-      }
-
-      function createBoardElement(
-        size,
-        flatBoardData,
-        flatMarkedData,
-        isMyTurn,
-        playerId
-      ) {
-        const container = document.createElement("div");
-        container.className = "bingo-grid-container";
-
-        const grid = document.createElement("div");
-        grid.className = "grid gap-1";
-        grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-
-        for (let i = 0; i < size * size; i++) {
-          const cell = document.createElement("div");
-          const word = flatBoardData[i] || "";
-          const displayText =
-            word.length > 15 ? word.substring(0, 15) + "..." : word;
-          cell.textContent = displayText;
-          cell.title = word;
-          cell.className =
-            "bingo-cell bg-gray-100 border border-gray-200 rounded-md transition-colors duration-300";
-          if (flatMarkedData && flatMarkedData[i]) {
-            cell.classList.add("marked");
-          }
-
-          if (
-            playerId === userId &&
-            !isMyTurn &&
-            !cell.classList.contains("marked")
-          ) {
-            cell.classList.add("cursor-pointer", "hover:bg-yellow-200");
-            cell.onclick = () => requestWordApproval(word, i);
-          }
-
-          if (isMyTurn && !cell.classList.contains("marked")) {
-            cell.classList.add("cursor-pointer", "hover:bg-emerald-200");
-            cell.onclick = () => callWord(word);
-          }
-          grid.appendChild(cell);
-        }
-        container.appendChild(grid);
-
-        // 빙고 라인 그리기
-        const bingoLines = checkBingo(flatMarkedData, size);
-        if (bingoLines.length > 0) {
-          const svg = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "svg"
-          );
-          svg.setAttribute("class", "bingo-line-svg");
-          svg.setAttribute("viewBox", "0 0 100 100");
-
-          const cellSize = 100 / size;
-          const halfCell = cellSize / 2;
-
-          bingoLines.forEach((line) => {
-            const lineEl = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "line"
-            );
-            lineEl.setAttribute("class", "bingo-line");
-            const [type, indexStr] = line.split("-");
-            const index = parseInt(indexStr);
-
-            if (type === "row") {
-              lineEl.setAttribute("x1", "0");
-              lineEl.setAttribute("y1", `${index * cellSize + halfCell}`);
-              lineEl.setAttribute("x2", "100");
-              lineEl.setAttribute("y2", `${index * cellSize + halfCell}`);
-            } else if (type === "col") {
-              lineEl.setAttribute("x1", `${index * cellSize + halfCell}`);
-              lineEl.setAttribute("y1", "0");
-              lineEl.setAttribute("x2", `${index * cellSize + halfCell}`);
-              lineEl.setAttribute("y2", "100");
-            } else if (type === "diag" && index === 1) {
-              // L-R
-              lineEl.setAttribute("x1", "0");
-              lineEl.setAttribute("y1", "0");
-              lineEl.setAttribute("x2", "100");
-              lineEl.setAttribute("y2", "100");
-            } else if (type === "diag" && index === 2) {
-              // R-L
-              lineEl.setAttribute("x1", "100");
-              lineEl.setAttribute("y1", "0");
-              lineEl.setAttribute("x2", "0");
-              lineEl.setAttribute("y2", "100");
-            }
-            svg.appendChild(lineEl);
-          });
-          container.appendChild(svg);
-        }
-
-        return container;
-      }
-
-      async function submitBoard() {
-        if (!currentGameId || !userId) {
-          return;
-        }
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-
-        try {
-          const gameDoc = await getDoc(gameRef);
-          if (!gameDoc.exists()) {
-            return;
-          }
-          const gameData = gameDoc.data();
-          if (!gameData) {
-            return;
-          }
-          const size = gameData.size;
-
-          const inputs = document.querySelectorAll(
-            "#my-bingo-grid-container .bingo-input-div"
-          );
-          const board2D = [];
-          let row = [];
-          let allFilled = true;
-          for (let i = 0; i < inputs.length; i++) {
-            const value = inputs[i].textContent.trim();
-            if (!value) allFilled = false;
-            row.push(value);
-            if ((i + 1) % size === 0) {
-              board2D.push(row);
-              row = [];
-            }
-          }
-
-          if (!allFilled) {
-            showCustomAlert("빙고판의 모든 칸을 채워주세요.");
-            return;
-          }
-
-          const flatBoard = board2D.flat();
-          const flatMarked = Array(flatBoard.length).fill(false);
-
-          await updateDoc(gameRef, {
-            [`players.${userId}.board`]: flatBoard,
-            [`players.${userId}.marked`]: flatMarked,
-            [`players.${userId}.isReady`]: true,
-          });
-        } catch (error) {
-          console.error("Submit board error:", error);
-          showCustomAlert("빙고판 제출 중 오류가 발생했습니다.");
-        }
-      }
-
-      async function randomFillBoard() {
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        const gameDoc = await getDoc(gameRef);
-        if (!gameDoc.exists()) return;
-        const gameData = gameDoc.data();
-
-        let availableWords = [];
-        if (gameData.randomWords && gameData.randomWords.length > 0) {
-          availableWords = [...gameData.randomWords];
-        } else {
-          const topic = document.getElementById("wait-topic").textContent;
-          const sampleWords = {
-            음식: [
-              "김치찌개",
-              "된장찌개",
-              "비빔밥",
-              "불고기",
-              "잡채",
-              "떡볶이",
-              "순대",
-              "라면",
-              "치킨",
-              "피자",
-              "햄버거",
-              "파스타",
-              "초밥",
-              "우동",
-              "돈까스",
-              "갈비탕",
-              "설렁탕",
-              "삼겹살",
-              "곱창",
-              "막창",
-              "족발",
-              "보쌈",
-              "냉면",
-              "칼국수",
-              "수제비",
-            ],
-            동물: [
-              "강아지",
-              "고양이",
-              "호랑이",
-              "사자",
-              "코끼리",
-              "기린",
-              "하마",
-              "악어",
-              "원숭이",
-              "판다",
-              "코알라",
-              "캥거루",
-              "펭귄",
-              "독수리",
-              "참새",
-              "비둘기",
-              "고래",
-              "상어",
-              "거북이",
-              "뱀",
-              "개구리",
-              "사슴",
-              "여우",
-              "늑대",
-              "곰",
-            ],
-            "영화 제목": [
-              "기생충",
-              "부산행",
-              "극한직업",
-              "신과함께",
-              "명량",
-              "국제시장",
-              "베테랑",
-              "도둑들",
-              "암살",
-              "광해",
-              "택시운전사",
-              "해운대",
-              "괴물",
-              "왕의남자",
-              "어벤져스",
-              "아바타",
-              "타이타닉",
-              "인터스텔라",
-              "겨울왕국",
-              "알라딘",
-              "보헤미안랩소디",
-              "인셉션",
-              "다크나이트",
-              "반지의제왕",
-              "해리포터",
-            ],
-          };
-          availableWords =
-            sampleWords[topic] ||
-            Array.from({ length: 25 }, (_, i) => `샘플${i + 1}`);
-        }
-
-        const inputs = document.querySelectorAll(
-          "#my-bingo-grid-container .bingo-input-div"
-        );
-        const emptyInputs = [];
-        const existingWords = new Set();
-        inputs.forEach((input) => {
-          const value = input.textContent.trim();
-          if (value) {
-            existingWords.add(value.toLowerCase());
-          } else {
-            emptyInputs.push(input);
-          }
-        });
-
-        let wordsToFill = availableWords.filter(
-          (word) => !existingWords.has(word.toLowerCase())
-        );
-        wordsToFill.sort(() => 0.5 - Math.random());
-
-        emptyInputs.forEach((input, index) => {
-          if (wordsToFill[index]) {
-            input.textContent = wordsToFill[index];
-          }
-        });
-      }
-
-      async function startGame() {
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        const gameDoc = await getDoc(gameRef);
-        const gameData = gameDoc.data();
-        const guestPlayerIds = Object.keys(gameData.players).filter(
-          (id) => id !== gameData.hostId
-        );
-
-        await updateDoc(gameRef, {
-          status: "playing",
-          turn: guestPlayerIds[0] || null,
-        });
-      }
-
-      async function callWord(word) {
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        const gameDoc = await getDoc(gameRef);
-        const gameData = gameDoc.data();
-
-        if (gameData.turn !== userId || !word) return;
-
-        const updates = {};
-        const playerIds = Object.keys(gameData.players);
-        let newWinners = [...gameData.winners];
-
-        for (const pid of playerIds) {
-          const player = gameData.players[pid];
-          if (!player.board || pid === gameData.hostId) continue;
-
-          const newMarked = [...player.marked];
-          let changed = false;
-          for (let i = 0; i < player.board.length; i++) {
-            if (
-              player.board[i]?.trim().toLowerCase() ===
-              word.trim().toLowerCase()
-            ) {
-              if (!newMarked[i]) {
-                newMarked[i] = true;
-                changed = true;
-              }
-            }
-          }
-          if (changed) {
-            const newBingoCount = checkBingo(newMarked, gameData.size).length;
-            updates[`players.${pid}.marked`] = newMarked;
-            updates[`players.${pid}.bingoCount`] = newBingoCount;
-
-            if (
-              newBingoCount >= gameData.winCondition &&
-              !player.isWinner &&
-              !newWinners.includes(player.nickname)
-            ) {
-              updates[`players.${pid}.isWinner`] = true;
-              newWinners.push(player.nickname);
-            }
-          }
-        }
-
-        updates.turn = null;
-        updates.calledWords = [...gameData.calledWords, word];
-        updates.winners = newWinners;
-
-        if (newWinners.length >= gameData.endCondition) {
-          updates.status = "finished";
-        }
-
-        await updateDoc(gameRef, updates);
-      }
-
-      async function setPlayerTurn(playerId) {
-        if (!isHost) return;
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        await updateDoc(gameRef, { turn: playerId });
-      }
-
-      async function skipTurn() {
-        if (!isHost) return;
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        const gameDoc = await getDoc(gameRef);
-        const gameData = gameDoc.data();
-
-        if (!gameData.turn) {
-          showCustomAlert(
-            "현재 지정된 턴이 없습니다. 참가자를 클릭해 턴을 지정해주세요."
-          );
-          return;
-        }
-
-        const guestPlayerIds = Object.keys(gameData.players).filter(
-          (id) => id !== gameData.hostId
-        );
-        const currentIndex = guestPlayerIds.indexOf(gameData.turn);
-        const nextIndex = (currentIndex + 1) % guestPlayerIds.length;
-        const nextPlayerId = guestPlayerIds[nextIndex];
-
-        await updateDoc(gameRef, { turn: nextPlayerId });
-      }
-
-      async function requestWordApproval(word, index) {
-        if (isHost) return;
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        const gameDoc = await getDoc(gameRef);
-        const gameData = gameDoc.data();
-
-        const newRequest = {
-          requestId: `${userId}-${index}`,
-          userId,
-          nickname: userNickname,
-          word,
-          index,
-        };
-
-        const existingRequests = gameData.wordRequests || [];
-        if (
-          existingRequests.some((r) => r.requestId === newRequest.requestId)
-        ) {
-          showCustomAlert("이미 해당 단어의 인정을 요청했습니다.");
-          return;
-        }
-
-        await updateDoc(gameRef, {
-          wordRequests: [...existingRequests, newRequest],
-        });
-        showCustomAlert(`'${word}' 단어의 인정을 호스트에게 요청했습니다!`);
-      }
-
-      async function approveWordRequest(request) {
-        if (!isHost) return;
-
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        const gameDoc = await getDoc(gameRef);
-        const gameData = gameDoc.data();
-
-        const playerToUpdate = gameData.players[request.userId];
-        const newMarked = [...playerToUpdate.marked];
-        newMarked[request.index] = true;
-
-        const newBingoCount = checkBingo(newMarked, gameData.size).length;
-        let newWinners = [...gameData.winners];
-
-        const updates = {
-          [`players.${request.userId}.marked`]: newMarked,
-          [`players.${request.userId}.bingoCount`]: newBingoCount,
-          wordRequests: gameData.wordRequests.filter(
-            (r) => r.requestId !== request.requestId
-          ),
-        };
-
-        if (
-          newBingoCount >= gameData.winCondition &&
-          !playerToUpdate.isWinner &&
-          !newWinners.includes(playerToUpdate.nickname)
-        ) {
-          updates[`players.${request.userId}.isWinner`] = true;
-          newWinners.push(playerToUpdate.nickname);
-          updates.winners = newWinners;
-        }
-
-        if (newWinners.length >= gameData.endCondition) {
-          updates.status = "finished";
-        }
-
-        await updateDoc(gameRef, updates);
-      }
-
-      async function rejectWordRequest(request) {
-        if (!isHost) return;
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, currentGameId);
-        const gameDoc = await getDoc(gameRef);
-        const gameData = gameDoc.data();
-
-        await updateDoc(gameRef, {
-          wordRequests: gameData.wordRequests.filter(
-            (r) => r.requestId !== request.requestId
-          ),
-        });
-      }
-
-      async function manualEndGame() {
-        if (!isHost) return;
-        if (
-          window.confirm(
-            "정말로 게임을 종료하시겠습니까? 모든 참가자의 게임이 종료됩니다."
-          )
-        ) {
-          const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-          const gameRef = doc(db, gameCollectionPath, currentGameId);
-          await updateDoc(gameRef, { status: "finished" });
-        }
-      }
-
-      // --- 세션 관리 (재접속 기능) ---
-      function saveSession() {
-        if (currentGameId && userId) {
-          const sessionData = {
-            gameId: currentGameId,
-            userId: userId,
-            isHost: isHost,
-            nickname: userNickname,
-          };
-          sessionStorage.setItem(
-            "bingoGameSession",
-            JSON.stringify(sessionData)
-          );
-        }
-      }
-
-      function clearSession() {
-        sessionStorage.removeItem("bingoGameSession");
-      }
-
-      async function checkForExistingSession() {
-        const savedSessionJSON = sessionStorage.getItem("bingoGameSession");
-        if (!savedSessionJSON) return;
-
-        const savedSession = JSON.parse(savedSessionJSON);
-        if (
-          !savedSession.gameId ||
-          !savedSession.userId ||
-          userId !== savedSession.userId
-        ) {
-          clearSession();
-          return;
-        }
-
-        const gameCollectionPath = `/artifacts/${appId}/public/data/bingoGames`;
-        const gameRef = doc(db, gameCollectionPath, savedSession.gameId);
-        const gameDoc = await getDoc(gameRef);
-
-        if (gameDoc.exists()) {
-          const gameData = gameDoc.data();
-
-          if (
-            gameData.status === "finished" ||
-            !gameData.players[savedSession.userId]
-          ) {
-            clearSession();
-            return;
-          }
-
-          currentGameId = savedSession.gameId;
-          userNickname = savedSession.nickname;
-          isHost = savedSession.isHost;
-          currentRoomCode = gameData.roomCode;
-
-          listenToGameChanges(currentGameId);
-        } else {
-          clearSession();
-        }
-      }
-
-      function reshapeArray(flatArray, size) {
-        if (!flatArray || !size) return [];
-        const reshaped = [];
-        for (let i = 0; i < flatArray.length; i += size) {
-          reshaped.push(flatArray.slice(i, i + size));
-        }
-        return reshaped;
-      }
-
-      function generateRoomCode() {
-        return Math.random().toString(36).substring(2, 7).toUpperCase();
-      }
-
-      function copyRoomCode() {
-        const code = document.getElementById("room-code-display").textContent;
-        const textArea = document.createElement("textarea");
-        textArea.value = code;
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-          document.execCommand("copy");
-          showCustomAlert("방 코드가 복사되었습니다!");
-        } catch (err) {
-          showCustomAlert("복사에 실패했습니다.");
-        }
-        document.body.removeChild(textArea);
-      }
-
-      function checkBingo(flatMarked, size) {
-        if (!flatMarked || !size || flatMarked.length !== size * size)
-          return [];
-        const marked = reshapeArray(flatMarked, size);
-        if (marked.length === 0) return [];
-
-        let bingoLines = [];
-        for (let i = 0; i < size; i++) {
-          let rowBingo = true;
-          let colBingo = true;
-          for (let j = 0; j < size; j++) {
-            if (!marked[i]?.[j]) rowBingo = false;
-            if (!marked[j]?.[i]) colBingo = false;
-          }
-          if (rowBingo) bingoLines.push(`row-${i}`);
-          if (colBingo) bingoLines.push(`col-${i}`);
-        }
-        let diag1Bingo = true;
-        let diag2Bingo = true;
-        for (let i = 0; i < size; i++) {
-          if (!marked[i]?.[i]) diag1Bingo = false;
-          if (!marked[i]?.[size - 1 - i]) diag2Bingo = false;
-        }
-        if (diag1Bingo) bingoLines.push("diag-1");
-        if (diag2Bingo) bingoLines.push("diag-2");
-
-        return bingoLines;
-      }
-
-      function showCustomAlert(message) {
-        const existingModal = document.querySelector(".modal-backdrop");
-        if (existingModal) {
-          existingModal.remove();
-        }
-
-        const modalBackdrop = document.createElement("div");
-        modalBackdrop.className = "modal-backdrop";
-
-        const modalContent = document.createElement("div");
-        modalContent.className = "modal-content";
-
-        const messageEl = document.createElement("p");
-        messageEl.textContent = message;
-
-        const closeButton = document.createElement("button");
-        closeButton.textContent = "확인";
-
-        closeButton.onclick = () => {
-          modalBackdrop.remove();
-        };
-
-        modalContent.appendChild(messageEl);
-        modalContent.appendChild(closeButton);
-        modalBackdrop.appendChild(modalContent);
-
-        document.body.appendChild(modalBackdrop);
-        closeButton.focus();
-      }
+      // Initial load
+      defineMissions();
     </script>
   </body>
 </html>
